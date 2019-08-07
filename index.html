@@ -1,0 +1,51 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Real time application example</title>
+<link rel="stylesheet" href="https://unpkg.com/mustard-ui@latest/dist/css/mustard-ui.min.css">
+<script>
+
+var socket = new WebSocket("ws://localhost:8765");
+
+socket.onopen = function(e) {
+    console.log("[open] Connection established");
+};
+
+socket.onmessage = function(event) {
+    alert(`[message] Data received from server: ${event.data}`);
+};
+
+socket.onclose = function(event) {
+    if (event.wasClean) {
+        alert(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+    } else {
+        alert('[close] Connection died');
+    }
+};
+
+socket.onerror = function(error) {
+  console.log(`[error] ${error.message}`);
+};
+
+document.addEventListener('DOMContentLoaded', function(event) {
+
+}, false);
+
+</script>
+</head>
+<body>
+
+<table>
+    <thead>
+        <th>ID</th>
+        <th>Description</th>
+        <th>Done?</th>
+    </thead>
+    <tbody id="tb_todo">
+    </tbody>
+</table>
+
+</body>
+</html>

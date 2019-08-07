@@ -10,8 +10,8 @@ CREATE TABLE todo
 CREATE OR REPLACE FUNCTION notify_alert_insert() RETURNS trigger AS $$
 DECLARE
 BEGIN
-  PERFORM pg_notify('watchers_' || NEW.id, row_to_json(NEW)::TEXT);
-  RETURN new;
+    PERFORM pg_notify('todo_updates', row_to_json(NEW)::TEXT);
+    RETURN new;
 END;
 $$ LANGUAGE plpgsql;
 
