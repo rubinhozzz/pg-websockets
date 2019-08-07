@@ -14,7 +14,11 @@ socket.onopen = function(e) {
 };
 
 socket.onmessage = function(event) {
-    alert(`[message] Data received from server: ${event.data}`);
+    //alert(`[message] Data received from server: ${event.data}`);
+    console.log(event.data);
+    let data = JSON.parse(event.data);
+    let tbody = document.getElementById('tb_todo');
+    tbody.innerHTML += `<tr><td>${data.id}</td><td>${data.description}</td><td>${data.done}</td></tr>`;
 };
 
 socket.onclose = function(event) {
