@@ -6,30 +6,51 @@ import asyncio
 import http
 import websockets
 import pgpubsub
+import queue
+#from multiprocessing import Process, Queue
+#import threading
 
-pubsub = pgpubsub.connect(user='protonic', password='geheim', database='pgws')
-pubsub.listen('todo_updates')
+#def f(q):
+#    q.put(pubsub.get_event())
 
-"""
-async def health_check(path, request_headers):
-    if path == "/health/":
-        return http.HTTPStatus.OK, [], b"OK\n"
-"""
+#async def get_event(q):
+#    return q.get()
 
-async def echo(ws, path):
-    """
-    async for message in websocket:
-        await websocket.send(message)
-    """
-    for e in pubsub.events(yield_timeouts=True):
-        if e is None:
-            #ws.send_frame('', ws.OPCODE_PING)
-            pass
-        else:
-            print(e)
-            await ws.send(e.payload)
+pgresq = asyncio.Queue()
 
-start_server = websockets.serve(echo, "localhost", 8765)
+def start_pgthread(loop):
+    loop.create_task(coro_pgthread(loop))
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+async def coro_pgthread(loop):
+    await loop.run_in_executor(None, pgthread_main, pgresq, loop)
+
+def pgthread_main(qout, loop):
+    pubsub = pgpubsub.connect(user='protonic', password='geheim', database='pgws')
+    pubsub.listen('todo_updates')
+    while True:
+        e = pubsub.get_event()
+        if e is not None:
+            loop.call_soon_threadsafe(qout.put_nowait, e.payload)
+
+async def ws_handler(ws, path):
+    print('new socket!!!')
+    loop = asyncio.get_event_loop()
+    while True:
+        #e = await get_event(q) 
+        p = await pgresq.get()
+        await ws.send(p)
+    return ws
+
+#pubsub = pgpubsub.connect(user='protonic', password='geheim', database='pgws')
+#pubsub.listen('todo_updates')
+#q = Queue()
+#p = Process(target=f, args=(q,))
+#p.start()
+#p.join()
+#x = threading.Thread(target=f, args=(q,))
+#x.start
+loop = asyncio.get_event_loop()
+start_pgthread(loop)
+start_server = websockets.serve(ws_handler, 'localhost', 8766)
+loop.run_until_complete(start_server)
+loop.run_forever()

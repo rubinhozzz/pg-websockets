@@ -7,7 +7,11 @@
 <link rel="stylesheet" href="https://unpkg.com/mustard-ui@latest/dist/css/mustard-ui.min.css">
 <script>
 
-var socket = new WebSocket("ws://localhost:8765");
+document.addEventListener('DOMContentLoaded', function(event) {
+
+console.log('IN!!!');
+
+var socket = new WebSocket("ws://localhost:8766");
 
 socket.onopen = function(e) {
     console.log("[open] Connection established");
@@ -33,7 +37,6 @@ socket.onerror = function(error) {
   console.log(`[error] ${error.message}`);
 };
 
-document.addEventListener('DOMContentLoaded', function(event) {
 
 }, false);
 
