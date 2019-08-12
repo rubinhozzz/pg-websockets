@@ -1,56 +1,43 @@
 #!/usr/bin/env python
 
-# WS server example
-
 import asyncio
-import http
 import websockets
-import pgpubsub
-import queue
-#from multiprocessing import Process, Queue
-#import threading
+import asyncpg
 
-#def f(q):
-#    q.put(pubsub.get_event())
+class App(object):
 
-#async def get_event(q):
-#    return q.get()
+    def __init__(self):
+        self.loop = asyncio.get_event_loop()
+        self.ws_list = []
+        self.conn = None
+        self.q = None
 
-pgresq = asyncio.Queue()
+    async def initialize(self):
+        if self.q is None:
+            self.q = asyncio.Queue(loop=self.loop)
+        if self.conn is None:
+            self.conn = await asyncpg.connect(user='protonic', password='geheim', database='pgws', host='127.0.0.1')
+            await self.conn.add_listener('todo_updates', listener)
 
-def start_pgthread(loop):
-    loop.create_task(coro_pgthread(loop))
+    async def ws_handler(self, ws, path):
+        def listener(*args):
+            self.q.put_nowait(args)
+        self.ws_list.append(ws)
+        if self.q is None:
+            self.q = asyncio.Queue(loop=self.loop)
+        if self.conn is None:
+            self.conn = await asyncpg.connect(user='protonic', password='geheim', database='pgws', host='127.0.0.1')
+            await self.conn.add_listener('todo_updates', listener)
+        print('new socket!!!')
+        while True:
+            item = await self.q.get()
+            if item is not None:
+                for ws in self.ws_list:
+                    await ws.send(item[3])
+            await asyncio.sleep(1)
 
-async def coro_pgthread(loop):
-    await loop.run_in_executor(None, pgthread_main, pgresq, loop)
-
-def pgthread_main(qout, loop):
-    pubsub = pgpubsub.connect(user='protonic', password='geheim', database='pgws')
-    pubsub.listen('todo_updates')
-    while True:
-        e = pubsub.get_event()
-        if e is not None:
-            loop.call_soon_threadsafe(qout.put_nowait, e.payload)
-
-async def ws_handler(ws, path):
-    print('new socket!!!')
-    loop = asyncio.get_event_loop()
-    while True:
-        #e = await get_event(q) 
-        p = await pgresq.get()
-        await ws.send(p)
-    return ws
-
-#pubsub = pgpubsub.connect(user='protonic', password='geheim', database='pgws')
-#pubsub.listen('todo_updates')
-#q = Queue()
-#p = Process(target=f, args=(q,))
-#p.start()
-#p.join()
-#x = threading.Thread(target=f, args=(q,))
-#x.start
-loop = asyncio.get_event_loop()
-start_pgthread(loop)
-start_server = websockets.serve(ws_handler, 'localhost', 8766)
-loop.run_until_complete(start_server)
-loop.run_forever()
+if __name__ == '__main__':
+    app = App()
+    start_server = websockets.serve(app.ws_handler, 'localhost', 8766)
+    app.loop.run_until_complete(start_server)
+    app.loop.run_forever()
