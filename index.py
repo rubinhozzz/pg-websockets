@@ -12,13 +12,6 @@ class App(object):
         self.conn = None
         self.q = None
 
-    async def initialize(self):
-        if self.q is None:
-            self.q = asyncio.Queue(loop=self.loop)
-        if self.conn is None:
-            self.conn = await asyncpg.connect(user='protonic', password='geheim', database='pgws', host='127.0.0.1')
-            await self.conn.add_listener('todo_updates', listener)
-
     async def ws_handler(self, ws, path):
         def listener(*args):
             self.q.put_nowait(args)
@@ -26,7 +19,7 @@ class App(object):
         if self.q is None:
             self.q = asyncio.Queue(loop=self.loop)
         if self.conn is None:
-            self.conn = await asyncpg.connect(user='protonic', password='geheim', database='pgws', host='127.0.0.1')
+            self.conn = await asyncpg.connect(user='testuser', password='12345', database='pgws', host='127.0.0.1')
             await self.conn.add_listener('todo_updates', listener)
         print('new socket!!!')
         while True:
