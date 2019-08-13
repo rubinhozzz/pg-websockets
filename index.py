@@ -31,6 +31,6 @@ class App(object):
 
 if __name__ == '__main__':
     app = App()
-    start_server = websockets.serve(app.ws_handler, 'localhost', 8766)
+    start_server = websockets.serve(app.ws_handler, 'localhost', 8080)
     app.loop.run_until_complete(start_server)
     app.loop.run_forever()
